@@ -2,7 +2,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.patches import Rectangle
 import sys
+import math
 
+VERTICAL_MOVES = [0, 2, 4, 6]
+DIAGONAL_MOVES = [1, 3, 5, 7]
 def plot_maze(file_path, file_type):
     try:
         # Load the maze from the .txt file
@@ -42,14 +45,27 @@ def plot_maze(file_path, file_type):
         print(f"Failed to read the file: {e}")
 
 
+
+
+
+
 def main():
     file_path = sys.argv[1]
     if (len(sys.argv) - 1 < 2): 
         print("Usage: python vis.py filename -i|-o")
         return -1
     file_type = sys.argv[2]
-    
-    plot_maze(file_path, file_type)
+    with open(file_path, "r") as file:
+            if (file_type == "-i"):
+                skip_rows = 1
+            elif (file_type == "-o"):
+                skip_rows = 4
+
+
+def calculate_utility(k, angle, direction):
+    distance_cost = (1 if direction in VERTICAL_MOVES else math.sqrt(2))
+    angle_cost = k * (angle / 180)
+    return distance_cost + angle_cost
 
 
 
