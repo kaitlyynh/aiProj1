@@ -1,5 +1,5 @@
 import math
-ACTIONS = {
+ANGLES = {
     0: 0,
     2: 90,
     4: 180,
@@ -11,7 +11,7 @@ ACTIONS = {
 }
 
 def cost_angle(s_curr, action): # calculate delta theta
-    diff = abs(ACTIONS[action] - ACTIONS[s_curr]) 
+    diff = abs(ANGLES[action] - ANGLES[s_curr]) 
     if (diff > 180): diff = 360 - diff 
     return diff 
 

@@ -1,12 +1,19 @@
 import heapq
 import numpy as np
 import sys
+import utility_functions
+NUM_ROWS = 30
+NUM_COLS = 50
+WALL = 1 
+# (row, col)
 
-
+COORD_OFFSET_MAP = {(0, 1): 0, (-1, 0): 2, (0, -1): 4, (1, 0): 6,
+                    (-1, 1): 1, (-1, -1): 3, (1, -1): 5, (1, 1): 7
+                   }
 
 class Node:
     def __init__(self, position, utility_score = None, angle = 0, neighbors = [], ):
-        self.position = position
+        self.position = (int(position[0]), int(position[1]))
         self.angle = angle
         self.neighbors = neighbors
         self.utility_score = utility_score
@@ -24,30 +31,72 @@ class Node:
         return self.utility_score > other.utility_score
 
 
+
+def is_valid_coordinate(pos): # is within bounds
+    r_pos, c_pos = pos[0], pos[1]
+    return 0 <= r_pos < NUM_ROWS and 0 <= c_pos < NUM_COLS 
+    
+"""
+x x x   
+x x x 
+x x x
+"""
+def expand(node):
+    print("node pos:", node.position)                
+    action_cost = utility_functiions.cost_direction(action)
+
+    return node
+           
+                   
+                            
+
+
+def best_first_search(start_node):
+    for r in range(-1, 2): 
+        for c in range(-1, 2):
+            coord = (node.position[0] + r, node.position[1] + c - 1) # 
+            if coord == node.position: continue
+            if is_valid_coordinate(coord):
+                print("is valid coord", coord)
+                if (g_maze[coord[0], coord[1]] != WALL):
+                    expand(node, action = COORD_OFFSET_MAP[(r, c)])
+
+g_visited = set()
+global g_maze 
 def main():
-    try:
+
+   # try:
         file_path = sys.argv[1]
     
         
         with open(file_path, "r") as file:
-            frontier = []
+            global g_maze, g_visited
+            # frontier = []
             first_line = file.readline().strip().split()
-            start_pos = first_line[0], first_line[1]
+            start_pos = int(first_line[0]), int(first_line[1])
             end_pos = first_line[2], first_line[3]
-
-            maze = np.loadtxt(file_path, delimiter=" ", usecols=range(50), skiprows = 1)
-
+            g_maze = np.loadtxt(file_path, delimiter=" ", usecols=range(50), skiprows = 1)
+            
+            # transforming array to achieve [x][y] indexing
+            g_maze = np.flipud(g_maze) 
+            g_maze = g_maze.transpose() 
+            print(g_maze[6, 15])
             start_node = Node(start_pos, 1) 
-            test_node = Node((1,1), -1)
-            heapq.heappush(frontier, start_node)
-            # print(heapq.heappop(frontier))
-            heapq.heappush(frontier, test_node)
+            expand(start_node, action)
+
+
+
+            # # test_node = Node((1,1), -1)
+            # heapq.heappush(frontier, start_node)
+            # # print(heapq.heappop(frontier))
+            # # heapq.heappush(frontier, test_node)
+            # while f
+            # # print(heapq.heappop(frontier))
+            # print(heapq.nsmallest(1, frontier)[0])
+
             
-            # print(heapq.heappop(frontier))
-            print(heapq.nsmallest(1, frontier)[0])
-            
-    except Exception as e:
-        print(f"Failed to read the file: {e}")
+    #except Exception as e:
+     #   print( f"{e}")
 
 
 if __name__ == "__main__":
