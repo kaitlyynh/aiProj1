@@ -16,11 +16,11 @@ def cost_angle(curr_dir, action): # calculate delta theta
     if (diff > 180): diff = 360 - diff 
     return diff 
 
-def cost_direction(action): # calculate c(s, a, s')
-    result = None
-    if (action % 2): result = 1
-    else: result = math.sqrt(2) 
-    return result
 
-def utility_func(s_curr, s_prime_ang, action, k): # entire utility function
-    return k * cost_angle(s_curr, s_prime_ang) / 180 + cost_direction(action)
+def cost_direction(action): # calculate c(s, a, s')
+    if (action % 2): return 1
+    else: return math.sqrt(2) 
+
+
+def utility_func(s_curr, action, k): # entire utility function
+    return k * cost_angle(s_curr, action) / 180 + cost_direction(action)
