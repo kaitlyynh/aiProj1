@@ -14,26 +14,6 @@ using namespace std;
 const int NUM_ROWS = 30, 
           NUM_COLS = 50;
 
-// Custom hash function for pair<int, int>
-struct pair_hash {
-    template <class T1, class T2>
-    size_t operator()(const pair<T1, T2>& p) const {
-        // Combine the hashes of the two elements in the pair
-        size_t h1 = hash<T1>()(p.first);
-        size_t h2 = hash<T2>()(p.second);
-        return h1 ^ (h2 << 1); // Simple combination using XOR and bit-shifting
-    }
-};
-
-unordered_map< pair<int, int>, int, pair_hash> COORD_OFFSET_MAP =  {{{-1, -1}, 3},
-                                                        {{-1, 0}, 2},
-                                                        {{-1, 1}, 1},
-                                                        {{1, -1}, 5},
-                                                        {{1, 0}, 6},
-                                                        {{1, 1}, 7},
-                                                        {{0, -1}, 4},
-                                                        {{0, 1}, 0}
-                                                    };
 //Global variables
 vector<vector<int>> g_maze;
 vector<vector<bool>> visited;
@@ -50,9 +30,7 @@ float cost_angle(const int curr_dir, const int action);//calculate angle cost fu
 float cost_distance(const int action); //calculate distance cost function
 float utility_function(const int s_curr, const int action, const int k); //entire utility function
 
-int coord_offset_to_action(const pair<int, int>& coord_offset){
-    
-}
+int coord_offset_to_action(const pair<int, int>& coord_offset); // matches coordinate offset to an action
 
 
 
@@ -123,6 +101,19 @@ void print_matrix(const vector<vector<int>>& matrix){
         }
         cout << endl;
     }
+}
+
+int coord_offset_to_action(const pair<int, int>& coord_offset){
+    if (coord_offset.first == 1 && coord_offset.second == 0){return 0;} //RIGHT
+    else if (coord_offset.first == 0 && coord_offset.second == -1){return 2;} //UP
+    else if (coord_offset.first == -1 && coord_offset.second == 0){return 4;} //LEFT
+    else if (coord_offset.first == 0 && coord_offset.second == 1){return 6;}//DOWN
+    //Diagonals
+    else if (coord_offset.first == 1 && coord_offset.second == -1){return 1;} // Right + Up
+    else if (coord_offset.first == 1 && coord_offset.second == 1){return 3;} // Right + Down
+    else if (coord_offset.first == -1 && coord_offset.second == -1){return 5;} // Left + Up
+    else if (coord_offset.first == -1 && coord_offset.second == 1){return 7;} // Left + Down
+    
 }
 float cost_angle(const int curr_dir, const int action){ 
     int diff = abs((curr_dir - action) * 45);
