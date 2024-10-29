@@ -23,12 +23,15 @@ public:
         return lhs.utility_score < rhs.utility_score;
     }
 
-
     friend bool operator==(const Node& lhs,  const Node& rhs)
     {
         return lhs.utility_score == rhs.utility_score;
     }
- 
+    
+    friend bool operator<=(const Node& lhs,  const Node& rhs)
+    {
+        return lhs.utility_score < rhs.utility_score || lhs.utility_score == rhs.utility_score;
+    }
     pair<int, int> position;
     int direction;
     float path_cost = 0;
@@ -52,7 +55,7 @@ vector<vector<int>> g_maze;
 vector<int> g_solution_path; // stores sequence of actions taken to reach goal node
 vector<float> g_utility_values; //stores utility values of nodes in the solution path
 priority_queue<Node> g_frontier;
-bool g_reached[NUM_COLS][NUM_ROWS];
+int g_reached[NUM_COLS][NUM_ROWS] = {{0}};
 
 int g_total_nodes_generated = 1; //total nodes generated including the root node
 int g_depth = 0;
@@ -78,20 +81,24 @@ int coord_offset_to_action(const int x_off, const int y_off); // matches coordin
 void expand(const  Node& node); //expands node, adds children to frontier and updates reached states
 void best_first_search(); // best first search algorithm
 
-void initialize(); //intialize root node
+void initialize(); //initialize root node
 
 
 int main(int argc, char* argv[]){
     if (argc != 2){cerr << "Requires input file\n"; return -1;}
     string filepath = argv[1];
     parse_file(filepath);
-    // cout << g_maze[6][15] << endl;
+    // cout << g_maze[g_start_x][g_start_y] << endl;
     // cout << "rows: " << g_maze.size() << endl;
     // cout << "cols: " << g_maze[0].size() << endl;
     //print_matrix(g_maze);
-    //print_matrix(g_maze);
+    
     initialize();
     best_first_search();
+    transpose(g_maze);
+    reverse(g_maze.begin(), g_maze.end());
+    //for (int a : g_solution_path){cout << a << " ";}
+    //cout << endl;
     print_matrix(g_maze);
     cout << "Finished" << endl;
 }
@@ -101,6 +108,7 @@ void initialize() {
               0,
               heuristic(g_start_x, g_start_y) //g(n) = 0 at root
     );
+    g_reached[g_start_x][g_start_y] = true;
     g_frontier.push(root);
 }
 
@@ -220,18 +228,29 @@ Node generate_child(const Node& curr, const int action, const int child_x, const
 
 void best_first_search(){
     Node curr;
+    int curr_x, curr_y;
     while (!g_frontier.empty()){
-        print_matrix(g_maze);
+        //print_matrix(g_maze);
         curr = g_frontier.top();
         g_frontier.pop();
+        curr_x = curr.position.first;
+        curr_y = curr.position.second;
+        g_reached[curr_x][curr_y] = true;
+        if (!(curr_x == g_start_x && curr_y == g_start_y) &&
+            !(curr_x == g_end_x && curr_y == g_end_y))
+        {
+            g_maze[curr_x][curr_y] = PATH;
+        }
         g_solution_path.push_back(curr.direction);
         g_utility_values.push_back(curr.utility_score);
         //return if curr is goal state
-        if (curr.position.first == g_end_x && curr.position.first == g_end_y) {
+        if (curr.position.first == g_end_x && curr.position.second == g_end_y) {
             cout << "Goal node found: " << curr.position.first  <<  " " << curr.position.second << endl;
-            return;
+            break;
         }
-        g_maze[curr.position.first][curr.position.second] = PATH;
+        
+        
+         
         expand(curr);
         ++g_depth;        
     }
@@ -250,10 +269,9 @@ void expand(const struct Node& node){
                 n_x = node.position.first  + x; 
                 n_y = node.position.second + y;
                 //make sure it is a valid coordinate and not visited
-                if (0 <= n_x < NUM_COLS && 0 <= n_y < NUM_ROWS 
+                if (0 <= n_x && n_x < NUM_COLS && 0 <= n_y && n_y < NUM_ROWS 
                     && !g_reached[n_x][n_y] && g_maze[n_x][n_y] != WALL)
                 {
-                    g_reached[n_x][n_y] = true;
                     g_frontier.push(generate_child(node, action, n_x, n_y)); 
                 }
             }
