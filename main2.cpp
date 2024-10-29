@@ -15,7 +15,7 @@ struct Node {
 public:
     pair<int, int> position;
     int angle;
-    vector<Node> neighbors;
+    //vector<Node> neighbors;
     float utility_score;
 };
 
@@ -43,8 +43,8 @@ float cost_distance(const int action); //calculate distance cost function
 float utility_function(const int s_curr, const int action, const int k); //entire utility function
 
 int coord_offset_to_action(const pair<int, int>& coord_offset); // matches coordinate offset to an action
-void expand(Node& node); //expands node 
-void best_first_search(Node& node); // best first search algorithm
+vector<Node> expand(const struct Node& node); //expands node 
+void best_first_search(const struct Node& node); // best first search algorithm
 
 
 
@@ -162,9 +162,13 @@ void best_first_search(){
         curr = g_frontier.top();
         g_frontier.pop();
         for (Node n : expand(curr)){
-            frontier.push(n, utility_function(n));
+            //frontier.push(n, n.utility_score);
         }
 
 
     }
+}
+
+vector<Node> expand(const struct Node& node){
+
 }
