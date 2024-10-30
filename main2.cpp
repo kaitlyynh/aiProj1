@@ -41,14 +41,14 @@ public:
 
 //Global constants
 
-const int NUM_ROWS = 7, 
-          NUM_COLS = 7;
+const int NUM_ROWS = 30, 
+          NUM_COLS = 50;
 
 const int BLANK = 0;
 const int WALL = 1;
 const int PATH = 4; //indicates path taken
 
-const float K = 1.0f;  //angle cost weight
+const float K = 6.0f;  //angle cost weight
 
 //Global variables
 vector<vector<int>> g_maze;
@@ -58,7 +58,6 @@ priority_queue<Node> g_frontier;
 int g_reached[NUM_COLS][NUM_ROWS] = {{0}};
 
 int g_total_nodes_generated = 1; //total nodes generated including the root node
-int g_depth = 0;
 int g_start_x, g_start_y,  g_end_x, g_end_y;
 
 //Prototypes  
@@ -97,10 +96,15 @@ int main(int argc, char* argv[]){
     best_first_search();
     transpose(g_maze);
     reverse(g_maze.begin(), g_maze.end());
-    //for (int a : g_solution_path){cout << a << " ";}
-    //cout << endl;
+    cout << g_solution_path.size() - 1 << endl;
+    cout << g_total_nodes_generated << endl;
+    for (int i = 1; i < g_solution_path.size(); ++i){cout << g_solution_path[i] << " ";}
+    cout << endl;
+    for (int i = 1; i < g_solution_path.size(); ++i)
+    {cout << -1 * g_utility_values[i] << " ";}
+    cout << endl;
     print_matrix(g_maze);
-    cout << "Finished" << endl;
+    
 }
 
 void initialize() {
@@ -169,26 +173,26 @@ void print_matrix(const vector<vector<int>>& matrix){
         for (int c = 0; c < matrix[0].size(); ++c){
             cout << matrix[r][c] << " ";
         }
-        cout << "\n\n";
+        cout << "\n";
     }
 }
 
 int coord_offset_to_action(const int x_off, const int y_off){ //not sure if this is correct
     if (x_off == 1 && y_off == 0){return 0;} //RIGHT
-    else if (x_off == 0 && y_off == -1){return 2;} //UP
+    else if (x_off == 0 && y_off == 1){return 2;} //UP
     else if (x_off == -1 && y_off == 0){return 4;} //LEFT
-    else if (x_off == 0 && y_off == 1){return 6;}//DOWN
+    else if (x_off == 0 && y_off == -1){return 6;}//DOWN
     //Diagonals
-    else if (x_off == 1 && y_off == -1){return 1;} // Right + Up
-    else if (x_off == 1 && y_off == 1){return 3;} // Right + Down
-    else if (x_off == -1 && y_off == -1){return 5;} // Left + Up
-    else if (x_off == -1 && y_off == 1){return 7;} // Left + Down
+    else if (x_off == 1 && y_off == 1){return 1;} // Right + Up
+    else if (x_off == 1 && y_off == -1){return 3;} // Right + Down
+    else if (x_off == -1 && y_off == 1){return 5;} // Left + Up
+    else if (x_off == -1 && y_off == -1){return 7;} // Left + Down
     
 }
 
 
 float cost_angle(const int curr_dir, const int action){ 
-    if (g_depth == 0){return 0;} //initial angle cost is 0
+    if (g_solution_path.size() - 1 == 0){return 0;} //initial angle cost is 0 
     int diff = abs((curr_dir - action) * 45);
     if (diff > 180){diff = 360 - diff;} 
     return diff;
@@ -208,10 +212,10 @@ float heuristic(int curr_x, int curr_y){
     return sqrt(pow(curr_x - g_end_x, 2)  + pow(curr_y - g_end_y, 2));
 }
 
-float utility_function(const Node& curr, Node& neighbor) {        
-    float h = heuristic(curr.position.first, curr.position.second);         
-    neighbor.path_cost = curr.path_cost + cost_function(curr.direction, neighbor.direction);
-    return h + neighbor.path_cost; 
+float utility_function(Node& node) {        
+    float h = heuristic(node.position.first, node.position.second);         
+    node.path_cost = node.path_cost + cost_function(node.direction, node.direction);
+    return -1.0f * (h + node.path_cost); // priority queue is a max heap by default 
 }
 
 Node generate_child(const Node& curr, const int action, const int child_x, const int child_y){
@@ -221,7 +225,7 @@ Node generate_child(const Node& curr, const int action, const int child_x, const
     child.position = pair<int, int>{child_x, child_y};
     child.path_cost = cost_function(curr.direction, action);
     child.direction = action;
-    child.utility_score = child.path_cost + heuristic(child.position.first, child.position.second);
+    child.utility_score = utility_function(child);
     return child;
 }
 
@@ -233,6 +237,8 @@ void best_first_search(){
         //print_matrix(g_maze);
         curr = g_frontier.top();
         g_frontier.pop();
+        // cout << "pos: " << curr.position.first << ", " << curr.position.second << endl;
+        // cout << "utility score: " << curr.utility_score << endl;
         curr_x = curr.position.first;
         curr_y = curr.position.second;
         g_reached[curr_x][curr_y] = true;
@@ -245,14 +251,10 @@ void best_first_search(){
         g_utility_values.push_back(curr.utility_score);
         //return if curr is goal state
         if (curr.position.first == g_end_x && curr.position.second == g_end_y) {
-            cout << "Goal node found: " << curr.position.first  <<  " " << curr.position.second << endl;
-            break;
+            //cout << "Goal node found: " << curr.position.first  <<  " " << curr.position.second << endl;
+            return;
         }
-        
-        
-         
-        expand(curr);
-        ++g_depth;        
+        expand(curr);      
     }
 }
 
