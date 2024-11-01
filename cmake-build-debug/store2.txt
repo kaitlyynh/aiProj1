@@ -13,6 +13,10 @@
 using namespace std;
 
 struct Node {
+    friend ostream& operator<<(ostream& os, const Node& rhs) {
+        os << "[(" << rhs.position.first << ", " << rhs.position.second << ") U:" << rhs.utility_score << " A:" << rhs.direction << "] ";
+        return os;
+    }
 public:
     Node(){}
     Node(pair<int,int> pos, int direction, float utility_score) : position(pos),
@@ -35,7 +39,6 @@ public:
     pair<int, int> position;
     int direction;
     float path_cost = 0;
-    //vector<Node> neighbors;
     float utility_score;
 };
 
@@ -48,12 +51,13 @@ const int BLANK = 0;
 const int WALL = 1;
 const int PATH = 4; //indicates path taken
 
-const float K = 6.0f;  //angle cost weight
+const float K = 6;  //angle cost weight
 
 //Global variables
 vector<vector<int>> g_maze;
 vector<int> g_solution_path; // stores sequence of actions taken to reach goal node
 vector<float> g_utility_values; //stores utility values of nodes in the solution path
+vector<Node> g_expanded_nodes;
 priority_queue<Node> g_frontier;
 int g_reached[NUM_COLS][NUM_ROWS] = {{0}};
 
@@ -66,13 +70,13 @@ void parse_file(const string& filepath); /*reads input file. Parses it to produc
                                             and loads into g_maze*/
 
 void transpose(vector<vector<int>>& matrix); // transposes a 2d matrix
-string print_matrix(const vector<vector<int>>& matrix); //prints 2d matrix. for debugging purposes
+void print_matrix(const vector<vector<int>>& matrix); //prints 2d matrix. for debugging purposes
 
 float cost_angle(const int curr_dir, const int action);//calculate angle cost function
 float cost_distance(const int action); //calculate distance cost function
 float cost_function(const int s_curr, const int action); //entire utility function
 float heuristic(int curr_x, int curr_y); //Euclidean distance of current node to goal node
-float utility_function(const Node& curr, Node& neighbor);// f(n)
+float utility_function(Node& curr);// f(n)
 Node generate_child(const Node& curr, const int action,
                     const int child_x, const int child_y); //creates child based on given action
 
@@ -82,50 +86,38 @@ void best_first_search(); // best first search algorithm
 
 void initialize(); //initialize root node
 
-void write_to_output(const string& output_file_name, const string& content) {
-    ofstream output_file_obj(output_file_name);
-    output_file_obj << content;
-    output_file_obj.close();
-}
+
 int main(int argc, char* argv[]){
-    string content;
-    if (argc != 2){cerr << "Requires input file\n"; return -1;}
-    string filepath = argv[1];
+//    if (argc != 2){cerr << "Requires input file\n"; return -1;}
+    string filepath = "Sample input.txt";
     parse_file(filepath);
     // cout << g_maze[g_start_x][g_start_y] << endl;
     // cout << "rows: " << g_maze.size() << endl;
     // cout << "cols: " << g_maze[0].size() << endl;
     //print_matrix(g_maze);
+
     initialize();
     best_first_search();
     transpose(g_maze);
     reverse(g_maze.begin(), g_maze.end());
-
-    content += (((to_string(g_solution_path.size() - 1) + '\n')));
-    content += (((to_string(g_total_nodes_generated) + '\n')));
-
+    cout << "K = " << K << endl;
     cout << g_solution_path.size() - 1 << endl;
     cout << g_total_nodes_generated << endl;
-    for (int i = 1; i < g_solution_path.size(); ++i){
-        cout << g_solution_path[i] << " ";
-        content += (to_string(g_solution_path[i]) + " " + (i == g_solution_path.size() - 1 ? "\n" : ""));
-    }
+    for (int i = 1; i < g_solution_path.size(); ++i){cout << g_solution_path[i] << " ";}
     cout << endl;
-    for (int i = 1; i < g_solution_path.size(); ++i) {
-        cout << -1 * g_utility_values[i] << " ";
-        content += (to_string(-1 * g_utility_values[i]) + " " + (i == g_solution_path.size() - 1 ? "\n" : ""));
-    }
+    for (int i = g_solution_path.size() - 1; i >= 0; --i)
+    {cout << -1 * g_utility_values[i] << " ";}
     cout << endl;
-    content += print_matrix(g_maze);
-    cout << "Content: " << content;
-    write_to_output("TEST OUTPUT.txt", content);
+    for (Node n : g_expanded_nodes) { cout << n; }
+    cout << endl;
+    print_matrix(g_maze);
 
 }
 
 void initialize() {
     Node root(pair<int,int>{g_start_x, g_start_y},
               0,
-              heuristic(g_start_x, g_start_y) //g(n) = 0 at root
+              heuristic(g_start_x, g_start_y) * -1 //g(n) = 0 at root
     );
     g_reached[g_start_x][g_start_y] = true;
     g_frontier.push(root);
@@ -183,17 +175,13 @@ void transpose(vector<vector<int>>& matrix){
 }
 
 
-string print_matrix(const vector<vector<int>>& matrix){
-    string matrix_content;
+void print_matrix(const vector<vector<int>>& matrix){
     for (int r = 0; r < matrix.size(); ++r){
         for (int c = 0; c < matrix[0].size(); ++c){
-            matrix_content += to_string(matrix[r][c]) + " ";
             cout << matrix[r][c] << " ";
         }
-        matrix_content += "\n";
         cout << "\n";
     }
-    return matrix_content;
 }
 
 int coord_offset_to_action(const int x_off, const int y_off){ //not sure if this is correct
@@ -219,21 +207,24 @@ float cost_angle(const int curr_dir, const int action){
 
 
 float cost_distance(const int action){
-    return (action % 2 ? 1 : sqrt(2));
+    return action % 2 ? 1 : sqrt(2);
+//    return (action % 2 ? sqrt(2) : 1);
 }
 
 
 float cost_function(const int s_curr, const int action){
-    return K * cost_angle(s_curr, action) / 180 + cost_distance(action);
+    cout << "cost_angle = " << (K*(cost_angle(s_curr, action) / 180)) << " cost_distance = " << cost_distance(action) << endl;
+    return ((K * (cost_angle(s_curr, action)) / 180)) + cost_distance(action);
 }
 
 float heuristic(int curr_x, int curr_y){
+    cout << "Heuristic for (" << curr_x << " " << curr_y << ")" << sqrt(pow(curr_x - g_end_x, 2)  + pow(curr_y - g_end_y, 2)) << endl;
     return sqrt(pow(curr_x - g_end_x, 2)  + pow(curr_y - g_end_y, 2));
 }
 
 float utility_function(Node& node) {
     float h = heuristic(node.position.first, node.position.second);
-    node.path_cost = node.path_cost + cost_function(node.direction, node.direction);
+    node.path_cost = node.path_cost;
     return -1.0f * (h + node.path_cost); // priority queue is a max heap by default
 }
 
@@ -242,9 +233,10 @@ Node generate_child(const Node& curr, const int action, const int child_x, const
     ++g_total_nodes_generated;
     Node child;
     child.position = pair<int, int>{child_x, child_y};
-    child.path_cost = cost_function(curr.direction, action);
+    child.path_cost = cost_function(curr.direction, action); // g(n)
     child.direction = action;
     child.utility_score = utility_function(child);
+    cout << child << child.path_cost << " Directions " << curr.direction << " " << action << endl;
     return child;
 }
 
@@ -253,11 +245,8 @@ void best_first_search(){
     Node curr;
     int curr_x, curr_y;
     while (!g_frontier.empty()){
-        //print_matrix(g_maze);
         curr = g_frontier.top();
         g_frontier.pop();
-        // cout << "pos: " << curr.position.first << ", " << curr.position.second << endl;
-        // cout << "utility score: " << curr.utility_score << endl;
         curr_x = curr.position.first;
         curr_y = curr.position.second;
         g_reached[curr_x][curr_y] = true;
@@ -270,15 +259,16 @@ void best_first_search(){
         g_utility_values.push_back(curr.utility_score);
         //return if curr is goal state
         if (curr.position.first == g_end_x && curr.position.second == g_end_y) {
-            //cout << "Goal node found: " << curr.position.first  <<  " " << curr.position.second << endl;
             return;
         }
         expand(curr);
+        g_expanded_nodes.push_back(curr);
     }
 }
 
 
 void expand(const struct Node& node){
+    cout << "Expand " << node << endl;
     int n_x, n_y; //neighbor's x and y position
     int action;
     for (int x = -1; x <= 1; ++x){

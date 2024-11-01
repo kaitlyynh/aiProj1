@@ -1,0 +1,292 @@
+#include <iostream>
+#include <sstream>
+#include <fstream>
+#include <vector>
+#include <queue>
+#include <cmath>
+#include <string>
+#include <stdexcept>
+#include <unordered_map>
+#include <algorithm>
+
+using namespace std;
+//Global constants
+const int NUM_ROWS = 30, // 30 and 50 respectively
+        NUM_COLS = 50,
+        k = 1.5; // angle penalty factor
+
+//Global variables
+vector<vector<int>> g_maze;
+vector<vector<bool>> visited;
+int g_start_x, g_start_y;
+
+
+//Prototypes
+void parse_file(const string& filepath); /*reads input file. Parses it to produce 2d matrix of the maze
+                                            and loads into g_maze*/
+void transpose(vector<vector<int>>& matrix); // transposes a 2d matrix
+void print_matrix(const vector<vector<int>>& matrix); //prints 2d matrix. for debugging purposes
+
+float cost_angle(const int curr_dir, const int action);//calculate angle cost function
+float cost_distance(const int action); //calculate distance cost function
+float utility_function(const int s_curr, const int action, const int k); //entire utility function
+
+int coord_offset_to_action(const pair<int, int>& coord_offset); // matches coordinate offset to an action
+
+void set_start_goal_positions(const string& first_line); // parse the desired positions from file first line
+
+
+
+int main2(int argc, char* argv[]){
+    if (argc != 2){cerr << "Requires input file\n"; return -1;}
+    string filepath = argv[1];
+    parse_file(filepath);
+    cout << g_maze[6][15] << endl;
+}
+
+void parse_file(const string& filepath){
+
+    ifstream input_file(filepath);
+    string line;
+    // Set the start and goal positions
+    getline(input_file, line);
+    set_start_goal_positions(line);
+    // Set the start and goal positions
+    while (getline(input_file, line)) {
+        vector<int> row;
+        istringstream ss(line);
+        int number;
+
+        // Read integers in the line and add them to the row vector
+        while (ss >> number) {
+            row.push_back(number);
+        }
+
+        // Add the row to the 2D vector
+        g_maze.push_back(row);
+    }
+    //transform matrix to achieve [x][y] indexing
+    reverse(g_maze.begin(), g_maze.end());
+    transpose(g_maze);
+    input_file.close();
+}
+
+
+void transpose(vector<vector<int>>& matrix){
+    if (matrix.empty() || matrix[0].empty()) {
+        return ;  // Return empty if input is empty
+    }
+
+    int rows = matrix.size();
+    int cols = matrix[0].size();
+
+    // Create a transposed matrix with dimensions `cols x rows`
+    vector<vector<int>> transposed(cols, vector<int>(rows));
+
+    // Fill the transposed matrix
+    for (int i = 0; i < rows; ++i) {
+        for (int j = 0; j < cols; ++j) {
+            transposed[j][i] = matrix[i][j];
+        }
+    }
+
+    matrix =  transposed;
+}
+
+
+void print_matrix(const vector<vector<int>>& matrix){
+    for (int r = 0; r < matrix.size(); ++r){
+        for (int c = 0; c < matrix[0].size(); ++c){
+            cout << matrix[r][c] << " ";
+        }
+        cout << endl;
+    }
+}
+
+int coord_offset_to_action(const pair<int, int>& coord_offset){
+    if (coord_offset.first == 1 && coord_offset.second == 0){return 0;} //RIGHT
+    else if (coord_offset.first == 0 && coord_offset.second == -1){return 2;} //UP
+    else if (coord_offset.first == -1 && coord_offset.second == 0){return 4;} //LEFT
+    else if (coord_offset.first == 0 && coord_offset.second == 1){return 6;}//DOWN
+        //Diagonals
+    else if (coord_offset.first == 1 && coord_offset.second == -1){return 1;} // Right + Up
+    else if (coord_offset.first == 1 && coord_offset.second == 1){return 3;} // Right + Down
+    else if (coord_offset.first == -1 && coord_offset.second == -1){return 5;} // Left + Up
+    else if (coord_offset.first == -1 && coord_offset.second == 1){return 7;} // Left + Down
+
+}
+float cost_angle(const int curr_dir, const int action){
+    int diff = abs((curr_dir - action) * 45);
+    if (diff > 180){diff = 360 - diff;}
+    return diff;
+}
+
+
+float cost_distance(const int action){
+    return (action % 2 ? 1 : sqrt(2));
+}
+
+
+float utility_function(const int s_curr, const int action, const int k){
+    return k * cost_angle(s_curr, action) / 180 + cost_distance(action);
+}
+
+
+
+class Node {
+    friend ostream& operator<<(ostream& os, const Node& rhs) {
+        os << "Node position " << rhs.position.first << ", " << rhs.position.second << endl;
+        return os;
+    }
+public:
+    pair<int, int> position;
+    float utility_score;
+    int direction;
+    float angle;
+    vector<Node> neighbors;
+    Node() {};
+    Node(const pair<int, int>& position, float utility_score = 0.0):
+        position(position), utility_score(utility_score), direction(0),
+        angle(0.0) {}
+
+    bool operator<(const Node& rhs) const {
+        return utility_score < rhs.utility_score;
+    }
+    bool operator>(const Node& rhs) const {
+        return utility_score > rhs.utility_score;
+    }
+    bool operator==(const Node& rhs) const {
+        return utility_score == rhs.utility_score;
+    }
+
+};
+
+
+vector<Node> frontier;
+vector<Node> expanded_nodes;
+pair<int, int> start_position, goal_position;
+void print_nodes(const vector<Node>& frontier) {
+    cout << "Print nodes: ";
+    for (const Node& node : frontier) {
+        cout << "(" << node.position.first << ", " << node.position.second << ") ";
+    }
+    cout << endl;
+}
+// Added change to parse_file to process the first line
+void default_visited(vector<vector<bool>>& visited) {
+    vector<bool> row_of_bools;
+    for (size_t i = 0; i < NUM_ROWS; i++) {
+        for (size_t j = 0; j < NUM_COLS; j++) {
+            row_of_bools.push_back(false);
+        }
+        visited.push_back(row_of_bools);
+        row_of_bools.clear();
+    }
+
+}
+void set_start_goal_positions(const string& first_line) {
+    istringstream ss(first_line);
+    ss >> start_position.first >> start_position.second >>
+       goal_position.first >> goal_position.second;
+    cout << "Start set to (" << start_position.first << ", " << start_position.second << ")" << endl;
+    cout << "Goal set to (" << goal_position.first << ", " << goal_position.second << ")" << endl;
+}
+Node& pop_first(vector<Node>& frontier, Node& dummy) {
+    Node temp;
+    for (size_t i = 1; i < frontier.size(); i++) {
+        temp = frontier[i];
+        frontier[i] = frontier[i - 1];
+        frontier[i - 1] = temp;
+    }
+
+    if (!frontier.empty()) {
+        cout << "Pop first returns Node " << dummy.position.first << " " << dummy.position.second << endl;
+        dummy = frontier.back();
+        frontier.pop_back();
+       return dummy;
+    } else {
+        cout << "Pop first returns Node " << dummy.position.first << " " << dummy.position.second << endl;
+        // Let position (-1, -1) represent a "failed node"
+        dummy = Node(make_pair(-1, -1));
+    }
+
+    return dummy;
+}
+bool is_valid_position(const pair<int, int>& position) {
+    // It is within bounds, not a wall (aka not 1), and not visited yet
+    bool expr = (0 <= position.first && position.first < NUM_ROWS) &&
+                (0 <= position.second && position.second < NUM_COLS) &&
+                g_maze[position.first][position.second] != 1 &&
+                !visited[position.first][position.second];
+    cout << "is_valid_position invoked at " << position.first << " " << position.second << " " << expr << endl;
+    return expr;
+}
+void expand(const Node& curr_node) {
+    // Check all neighbors
+    cout << "Expand on node " << curr_node;
+    pair<int, int> curr_offset, relative_position;
+    Node temp_node;
+    int total_utility_score;
+    // If not visited, calculate utility score & add to frontier
+    for (int i = -1; i < 2; i++) {
+        for (int j = -1; j < 2; j++) {
+            cout << "i j " << i << " " << j << endl;
+            curr_offset = make_pair(i, j);
+            if (curr_node.position == curr_offset) {
+                continue; // Don't process current node
+            } else {
+                relative_position = make_pair(curr_node.position.first + i, curr_node.position.second + j);
+                if (is_valid_position(relative_position)) {
+                    // Valid & Not a wall
+                    cout << "Calculate utility score for Node " << relative_position.first << " " << relative_position.second << endl;
+                    total_utility_score = utility_function(
+                            0,
+                            coord_offset_to_action(curr_offset),
+                            k
+                    );
+                    temp_node = Node(relative_position, total_utility_score);
+                    cout << "Calling pushback" << endl;
+                    frontier.push_back(temp_node);
+                    visited[relative_position.first][relative_position.second] = true; // Mark state as visited (?)
+                }
+            }
+        }
+    }
+    // Sort frontier after every expansion
+    sort(frontier.begin(), frontier.end());
+}
+Node best_first_search(const Node& start_node) {
+    Node curr = start_node;
+    frontier.push_back(curr);
+    cout << "Best first search begins" << endl;
+    while (!frontier.empty()) {
+        pop_first(frontier, curr); // curr = popped value
+        if (curr.position == goal_position) {
+            cout << "Goal node found at " << curr << endl;
+            return curr;
+        } else { // Expand the node removed from frontier
+            expand(curr);
+            print_nodes(frontier);
+            expanded_nodes.push_back(curr);
+
+        }
+    }
+    print_nodes(expanded_nodes);
+    // Let position (-1, -1) represent a "failed node"
+    Node fail_node = Node(make_pair(-1, -1));
+    return fail_node;
+}
+
+int main() { // made to default to Input1.txt file
+    string filepath = "Sample input.txt";
+    parse_file(filepath);
+    print_matrix(g_maze);
+    cout << g_maze[start_position.first][start_position.second] << endl;
+    default_visited(visited);
+
+    Node n = best_first_search(Node(make_pair(start_position.first, start_position.second)));
+
+}
+
+
+
