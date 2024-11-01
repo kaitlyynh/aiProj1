@@ -66,7 +66,7 @@ void parse_file(const string& filepath); /*reads input file. Parses it to produc
                                             and loads into g_maze*/
 
 void transpose(vector<vector<int>>& matrix); // transposes a 2d matrix
-void print_matrix(const vector<vector<int>>& matrix); //prints 2d matrix. for debugging purposes
+string print_matrix(const vector<vector<int>>& matrix); //prints 2d matrix. for debugging purposes
 
 float cost_angle(const int curr_dir, const int action);//calculate angle cost function
 float cost_distance(const int action); //calculate distance cost function
@@ -82,28 +82,43 @@ void best_first_search(); // best first search algorithm
 
 void initialize(); //initialize root node
 
-
+void write_to_output(const string& output_file_name, const string& content) {
+    ofstream output_file_obj(output_file_name);
+    output_file_obj << content;
+    output_file_obj.close();
+}
 int main(int argc, char* argv[]){
-    if (argc != 2){cerr << "Requires input file\n"; return -1;}
-    string filepath = argv[1];
+    string content;
+//    if (argc != 2){cerr << "Requires input file\n"; return -1;}
+    string filepath = "Sample input.txt";
     parse_file(filepath);
     // cout << g_maze[g_start_x][g_start_y] << endl;
     // cout << "rows: " << g_maze.size() << endl;
     // cout << "cols: " << g_maze[0].size() << endl;
     //print_matrix(g_maze);
-
     initialize();
     best_first_search();
     transpose(g_maze);
     reverse(g_maze.begin(), g_maze.end());
+
+    content += (((to_string(g_solution_path.size() - 1) + '\n')));
+    content += (((to_string(g_total_nodes_generated) + '\n')));
+
     cout << g_solution_path.size() - 1 << endl;
     cout << g_total_nodes_generated << endl;
-    for (int i = 1; i < g_solution_path.size(); ++i){cout << g_solution_path[i] << " ";}
+    for (int i = 1; i < g_solution_path.size(); ++i){
+        cout << g_solution_path[i] << " ";
+        content += (to_string(g_solution_path[i]) + " " + (i == g_solution_path.size() - 1 ? "\n" : ""));
+    }
     cout << endl;
-    for (int i = 1; i < g_solution_path.size(); ++i)
-    {cout << -1 * g_utility_values[i] << " ";}
+    for (int i = 1; i < g_solution_path.size(); ++i) {
+        cout << -1 * g_utility_values[i] << " ";
+        content += (to_string(-1 * g_utility_values[i]) + " " + (i == g_solution_path.size() - 1 ? "\n" : ""));
+    }
     cout << endl;
-    print_matrix(g_maze);
+    content += print_matrix(g_maze);
+    cout << "Content: " << content;
+    write_to_output("TEST OUTPUT.txt", content);
 
 }
 
@@ -168,13 +183,17 @@ void transpose(vector<vector<int>>& matrix){
 }
 
 
-void print_matrix(const vector<vector<int>>& matrix){
+string print_matrix(const vector<vector<int>>& matrix){
+    string matrix_content;
     for (int r = 0; r < matrix.size(); ++r){
         for (int c = 0; c < matrix[0].size(); ++c){
+            matrix_content += to_string(matrix[r][c]) + " ";
             cout << matrix[r][c] << " ";
         }
+        matrix_content += "\n";
         cout << "\n";
     }
+    return matrix_content;
 }
 
 int coord_offset_to_action(const int x_off, const int y_off){ //not sure if this is correct
