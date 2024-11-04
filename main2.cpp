@@ -48,7 +48,7 @@ const int BLANK = 0;
 const int WALL = 1;
 const int PATH = 4; //indicates path taken
 
-const float K = 6.0f;  //angle cost weight
+const float K = 1.0f;  //angle cost weight
 
 //Global variables
 vector<vector<int>> g_maze;
@@ -72,7 +72,7 @@ float cost_angle(const int curr_dir, const int action);//calculate angle cost fu
 float cost_distance(const int action); //calculate distance cost function
 float cost_function(const int s_curr, const int action); //entire utility function
 float heuristic(int curr_x, int curr_y); //Euclidean distance of current node to goal node
-float utility_function(const Node& curr, Node& neighbor);// f(n)
+float utility_function(Node& curr);// f(n)
 Node generate_child(const Node& curr, const int action,
                     const int child_x, const int child_y); //creates child based on given action
 
@@ -89,18 +89,19 @@ void write_to_output(const string& output_file_name, const string& content) {
 }
 int main(int argc, char* argv[]){
     string content;
-    if (argc != 2){cerr << "Requires input file\n"; return -1;}
-    string filepath = argv[1];
+//    if (argc != 2) {cerr << "Requires input file\n"; return -1;}
+    string filepath = "Input1.txt";
     parse_file(filepath);
     // cout << g_maze[g_start_x][g_start_y] << endl;
     // cout << "rows: " << g_maze.size() << endl;
     // cout << "cols: " << g_maze[0].size() << endl;
-    //print_matrix(g_maze);
+
     initialize();
     best_first_search();
     transpose(g_maze);
     reverse(g_maze.begin(), g_maze.end());
 
+    // Accumulate content to write to file
     content += (((to_string(g_solution_path.size() - 1) + '\n')));
     content += (((to_string(g_total_nodes_generated) + '\n')));
 
@@ -116,10 +117,9 @@ int main(int argc, char* argv[]){
         content += (to_string(-1 * g_utility_values[i]) + " " + (i == g_solution_path.size() - 1 ? "\n" : ""));
     }
     cout << endl;
-
+    print_matrix(g_maze);
     // Add the matrix to the string to be printed
     content += print_matrix(g_maze);
-
     // Write results to an output file
     write_to_output("TestOutputFile.txt", content);
 
@@ -185,7 +185,7 @@ void transpose(vector<vector<int>>& matrix){
     matrix =  transposed;
 }
 
-
+// Output the contents of a provided matrix
 string print_matrix(const vector<vector<int>>& matrix){
     string matrix_content;
     for (int r = 0; r < matrix.size(); ++r){
@@ -199,7 +199,8 @@ string print_matrix(const vector<vector<int>>& matrix){
     return matrix_content;
 }
 
-int coord_offset_to_action(const int x_off, const int y_off){ //not sure if this is correct
+// Map specific actions to a fixed direction
+int coord_offset_to_action(const int x_off, const int y_off){
     if (x_off == 1 && y_off == 0){return 0;} //RIGHT
     else if (x_off == 0 && y_off == 1){return 2;} //UP
     else if (x_off == -1 && y_off == 0){return 4;} //LEFT
@@ -214,29 +215,31 @@ int coord_offset_to_action(const int x_off, const int y_off){ //not sure if this
 
 
 float cost_angle(const int curr_dir, const int action){
-    if (g_solution_path.size() - 1 == 0){return 0;} //initial angle cost is 0
+    if (g_solution_path.size() - 1 == 0){return 0;} // Initial angle cost is 0
     int diff = abs((curr_dir - action) * 45);
     if (diff > 180){diff = 360 - diff;}
-    return diff;
+//    return diff;
+    return K * (diff / 180);
 }
 
 
 float cost_distance(const int action){
-    return (action % 2 ? sqrt(2) : 1);
+    return (action % 2 ?  sqrt(2) :  1);
 }
 
 
 float cost_function(const int s_curr, const int action){
-    return K * cost_angle(s_curr, action) / 180 + cost_distance(action);
+    return cost_angle(s_curr, action) + cost_distance(action);
 }
 
+// Calculate the distance between a specified and goal coordinate
 float heuristic(int curr_x, int curr_y){
     return sqrt(pow(curr_x - g_end_x, 2)  + pow(curr_y - g_end_y, 2));
 }
 
 float utility_function(Node& node) {
     float h = heuristic(node.position.first, node.position.second);
-    node.path_cost = node.path_cost + cost_function(node.direction, node.direction);
+//    node.path_cost = node.path_cost + cost_function(node.direction, node.direction); // Adding path cost twice (?)
     return -1.0f * (h + node.path_cost); // priority queue is a max heap by default
 }
 
