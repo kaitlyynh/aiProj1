@@ -48,17 +48,17 @@ const int BLANK = 0;
 const int WALL = 1;
 const int PATH = 4; //indicates path taken
 
-const float K = 1.0f;  //angle cost weight
+const float K = 6.0f;  //angle cost weight
 
 //Global variables
 vector<vector<int>> g_maze;
 vector<int> g_solution_path; // stores sequence of actions taken to reach goal node
 vector<float> g_utility_values; //stores utility values of nodes in the solution path
-priority_queue<Node> g_frontier;
+priority_queue<Node> g_frontier; //store nodes to be expanded
 int g_reached[NUM_COLS][NUM_ROWS] = {{0}};
 
 int g_total_nodes_generated = 1; //total nodes generated including the root node
-int g_start_x, g_start_y,  g_end_x, g_end_y;
+int g_start_x, g_start_y,  g_end_x, g_end_y; //store start & goal positions
 
 //Prototypes
 
@@ -81,17 +81,21 @@ void expand(const  Node& node); //expands node, adds children to frontier and up
 void best_first_search(); // best first search algorithm
 
 void initialize(); //initialize root node
+void write_to_output(const string& output_file_name, const string& content); //create output file with content
+
 
 void write_to_output(const string& output_file_name, const string& content) {
     ofstream output_file_obj(output_file_name);
     output_file_obj << content;
     output_file_obj.close();
 }
+
 int main(int argc, char* argv[]){
     string content;
 //    if (argc != 2) {cerr << "Requires input file\n"; return -1;}
-    string filepath = "Input1.txt";
+    string filepath = "Sample input.txt";
     parse_file(filepath);
+
     // cout << g_maze[g_start_x][g_start_y] << endl;
     // cout << "rows: " << g_maze.size() << endl;
     // cout << "cols: " << g_maze[0].size() << endl;
@@ -117,7 +121,7 @@ int main(int argc, char* argv[]){
         content += (to_string(-1 * g_utility_values[i]) + " " + (i == g_solution_path.size() - 1 ? "\n" : ""));
     }
     cout << endl;
-    print_matrix(g_maze);
+//    print_matrix(g_maze);
     // Add the matrix to the string to be printed
     content += print_matrix(g_maze);
     // Write results to an output file
@@ -199,7 +203,7 @@ string print_matrix(const vector<vector<int>>& matrix){
     return matrix_content;
 }
 
-// Map specific actions to a fixed direction
+// Map specific actions to a direction value
 int coord_offset_to_action(const int x_off, const int y_off){
     if (x_off == 1 && y_off == 0){return 0;} //RIGHT
     else if (x_off == 0 && y_off == 1){return 2;} //UP
@@ -216,7 +220,7 @@ int coord_offset_to_action(const int x_off, const int y_off){
 
 float cost_angle(const int curr_dir, const int action){
     if (g_solution_path.size() - 1 == 0){return 0;} // Initial angle cost is 0
-    int diff = abs((curr_dir - action) * 45);
+    int diff = abs((curr_dir - action) * 45); // Float (?)
     if (diff > 180){diff = 360 - diff;}
 //    return diff;
     return K * (diff / 180);
