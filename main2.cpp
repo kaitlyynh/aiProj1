@@ -116,9 +116,12 @@ int main(int argc, char* argv[]){
         content += (to_string(-1 * g_utility_values[i]) + " " + (i == g_solution_path.size() - 1 ? "\n" : ""));
     }
     cout << endl;
+
+    // Add the matrix to the string to be printed
     content += print_matrix(g_maze);
-    cout << "Content: " << content;
-    write_to_output("TEST OUTPUT.txt", content);
+
+    // Write results to an output file
+    write_to_output("TestOutputFile.txt", content);
 
 }
 
@@ -219,7 +222,7 @@ float cost_angle(const int curr_dir, const int action){
 
 
 float cost_distance(const int action){
-    return (action % 2 ? 1 : sqrt(2));
+    return (action % 2 ? sqrt(2) : 1);
 }
 
 
