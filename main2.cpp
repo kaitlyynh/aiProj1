@@ -92,8 +92,8 @@ void write_to_output(const string& output_file_name, const string& content) {
 
 int main(int argc, char* argv[]){
     string content;
-//    if (argc != 2) {cerr << "Requires input file\n"; return -1;}
-    string filepath = "Sample input.txt";
+    if (argc != 2) {cerr << "Requires input file\n"; return -1;}
+    string filepath = argv[1];
     parse_file(filepath);
 
     // cout << g_maze[g_start_x][g_start_y] << endl;
@@ -111,28 +111,31 @@ int main(int argc, char* argv[]){
 
     cout << g_solution_path.size() - 1 << endl;
     cout << g_total_nodes_generated << endl;
-    for (int i = 1; i < g_solution_path.size(); ++i){
+    for (int i = 0; i < g_solution_path.size(); ++i){
         cout << g_solution_path[i] << " ";
-        content += (to_string(g_solution_path[i]) + " " + (i == g_solution_path.size() - 1 ? "\n" : ""));
+        content += (to_string(g_solution_path[i]) + " " +
+                (i == g_solution_path.size() - 1 ? "\n" : ""));
     }
     cout << endl;
-    for (int i = 1; i < g_solution_path.size(); ++i) {
+
+
+    for (int i = g_utility_values.size() - 1; i > -1; --i) {
         cout << -1 * g_utility_values[i] << " ";
-        content += (to_string(-1 * g_utility_values[i]) + " " + (i == g_solution_path.size() - 1 ? "\n" : ""));
+        content += (to_string(-1 * g_utility_values[i]) + " " +
+                (i == g_solution_path.size() - 1 ? "\n" : ""));
     }
     cout << endl;
 //    print_matrix(g_maze);
-    // Add the matrix to the string to be printed
+
     content += print_matrix(g_maze);
-    // Write results to an output file
-    write_to_output("TestOutputFile.txt", content);
+    write_to_output("TestOutputFile.txt", content); // Write results to an output file
 
 }
 
 void initialize() {
     Node root(pair<int,int>{g_start_x, g_start_y},
               0,
-              heuristic(g_start_x, g_start_y) //g(n) = 0 at root
+              -1 *heuristic(g_start_x, g_start_y) //g(n) = 0 at root
     );
     g_reached[g_start_x][g_start_y] = true;
     g_frontier.push(root);
