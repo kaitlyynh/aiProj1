@@ -17,6 +17,7 @@ public:
     Node(){}
     Node(pair<int,int> pos, int direction, float utility_score) : position(pos),
                                                                   direction(direction),
+                                                                  path_cost(0.0),
                                                                   utility_score(utility_score){}
     friend bool operator<( const Node& lhs,  const Node& rhs)
     {
@@ -34,7 +35,7 @@ public:
     }
     pair<int, int> position;
     int direction;
-    float path_cost = 0;
+    float path_cost;
     //vector<Node> neighbors;
     float utility_score;
 };
@@ -92,8 +93,8 @@ void write_to_output(const string& output_file_name, const string& content) {
 
 int main(int argc, char* argv[]){
     string content;
-//    if (argc != 2) {cerr << "Requires input file\n"; return -1;}
-    string filepath = "Sample input.txt";
+    if (argc != 2) {cerr << "Requires input file\n"; return -1;}
+    string filepath = argv[1];
     parse_file(filepath);
 
     // cout << g_maze[g_start_x][g_start_y] << endl;
@@ -255,9 +256,11 @@ Node generate_child(const Node& curr, const int action, const int child_x, const
     ++g_total_nodes_generated;
     Node child;
     child.position = pair<int, int>{child_x, child_y};
-    child.path_cost = cost_function(curr.direction, action);
+//    child.path_cost = curr.path_cost + cost_function(curr.direction, action); // Accumulate f(n)
     child.direction = action;
+    child.path_cost = cost_function(curr.direction, action);
     child.utility_score = utility_function(child);
+
     return child;
 }
 
