@@ -48,7 +48,7 @@ const int BLANK = 0;
 const int WALL = 1;
 const int PATH = 4; //indicates path taken
 
-const float K = 6.0f;  //angle cost weight
+const float K = 1;  //angle cost weight
 
 //Global variables
 vector<vector<int>> g_maze;
@@ -92,8 +92,8 @@ void write_to_output(const string& output_file_name, const string& content) {
 
 int main(int argc, char* argv[]){
     string content;
-    if (argc != 2) {cerr << "Requires input file\n"; return -1;}
-    string filepath = argv[1];
+//    if (argc != 2) {cerr << "Requires input file\n"; return -1;}
+    string filepath = "Sample input.txt";
     parse_file(filepath);
 
     // cout << g_maze[g_start_x][g_start_y] << endl;
@@ -111,7 +111,7 @@ int main(int argc, char* argv[]){
 
     cout << g_solution_path.size() - 1 << endl;
     cout << g_total_nodes_generated << endl;
-    for (int i = 0; i < g_solution_path.size(); ++i){
+    for (int i = 1; i < g_solution_path.size(); ++i){ // Exclude root node
         cout << g_solution_path[i] << " ";
         content += (to_string(g_solution_path[i]) + " " +
                 (i == g_solution_path.size() - 1 ? "\n" : ""));
@@ -119,10 +119,10 @@ int main(int argc, char* argv[]){
     cout << endl;
 
 
-    for (int i = g_utility_values.size() - 1; i > -1; --i) {
+    for (int i = g_utility_values.size() - 1; i >= 0; --i) {
         cout << -1 * g_utility_values[i] << " ";
         content += (to_string(-1 * g_utility_values[i]) + " " +
-                (i == g_solution_path.size() - 1 ? "\n" : ""));
+                (i == 0 ? "\n" : ""));
     }
     cout << endl;
 //    print_matrix(g_maze);
@@ -223,7 +223,7 @@ int coord_offset_to_action(const int x_off, const int y_off){
 
 float cost_angle(const int curr_dir, const int action){
     if (g_solution_path.size() - 1 == 0){return 0;} // Initial angle cost is 0
-    int diff = abs((curr_dir - action) * 45); // Float (?)
+    float diff = abs((curr_dir - action) * 45); // Float (?)
     if (diff > 180){diff = 360 - diff;}
 //    return diff;
     return K * (diff / 180);
