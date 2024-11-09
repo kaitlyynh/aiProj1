@@ -25,7 +25,7 @@ const int BLANK = 0,
         WALL = 1,
         PATH = 4; // Indicates path taken
 
-const float K = 1;  // Angle cost weight
+const float K = 4;  // Angle cost weight
 
 struct Node {
 public:
@@ -127,7 +127,7 @@ int main(int argc, char* argv[]){
 
     content += print_matrix(g_maze);
     // Write results to an output file
-    write_to_output("TestOutputFile.txt", content);
+    write_to_output("Output3_K4.txt", content);
 
 }
 
