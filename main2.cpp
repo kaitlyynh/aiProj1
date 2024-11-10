@@ -96,7 +96,7 @@ void write_to_output(const string& output_file_name, const string& content) {
 int main(int argc, char* argv[]){
     string content;
     if (argc != 2) {cerr << "Requires input file\n"; return -1;}
-    string filepath = argv[1];
+    string filepath = argv[-1];
     parse_file(filepath);
 
     initialize();
